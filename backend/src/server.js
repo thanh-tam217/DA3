@@ -17,7 +17,29 @@ const chuyenXeRoutes = require('./routes/chuyenxeRoutes');
 const veRoutes = require('./routes/veRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const statsRoutes = require('./routes/statsRoutes');
 
+
+// In fingerprint secret khi khởi động
+console.log('[VNPAY secret len]', (process.env.VNP_HASH_SECRET || '').trim().length);
+console.log('[VNPAY secret sha256]',
+  require('crypto').createHash('sha256').update((process.env.VNP_HASH_SECRET || '').trim(),'utf8').digest('hex')
+);
+
+// Endpoint chẩn đoán nhanh
+app.get('/__vnp_diag', (req, res) => {
+  const tmnCode   = (process.env.VNP_TMN_CODE || '').trim();
+  const secretKey = (process.env.VNP_HASH_SECRET || '').trim();
+  const vnpUrl    = (process.env.VNP_URL || '').trim();
+  const returnUrl = (process.env.VNP_RETURN_URL || '').trim();
+  const sha256 = require('crypto').createHash('sha256').update(secretKey,'utf8').digest('hex');
+  res.json({ tmnCode, vnpUrl, returnUrl, secretLen: secretKey.length, secretSha256: sha256 });
+});
+
+
+app.use('/api/payment', paymentRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tinhthanh', tinhThanhRoutes);
@@ -28,6 +50,8 @@ app.use('/api/chuyenxe', chuyenXeRoutes);
 app.use('/api/ve', veRoutes);
 app.use('/api/user', userRoutes);
 
+// server.js
+app.set('trust proxy', true);
 
 // Kết nối MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
